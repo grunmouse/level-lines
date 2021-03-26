@@ -112,6 +112,9 @@
 		}
 	}
 	
+	/**
+	 * Числовой поиск, до тех пор, пока шаг аргумента не станет меньше допуска
+	 */
 	function nummericFindToStep(eps){
 		return (fun, value)=>{
 			let n=0, p=1;
@@ -135,6 +138,9 @@
 		}
 	}
 
+	/**
+	 * Числовой поиск, до тех пор, пока шаг приращение функции не станет меньше допуска
+	 */
 	function nummericFindToValue(eps){
 		return (fun, value)=>{
 			let n=0, p=1;
@@ -158,6 +164,9 @@
 		}
 	}
 	
+	/**
+	 * Линейная интерполяция функции от аргумента [0;1]
+	 */
 	function linearInterpol(fun, value){
 		let f0 = fun(0);
 		let k = fun(1) - f0;
@@ -557,7 +566,7 @@ function getLineEndsForPoints(points, lines){
 	 * @returned [{Point}, {EndOfPolyline}]
 	 */
 	const getEnd = (point)=>{
-		//Выбирает из массива концов концы, достаточно близкие к заданной точке, если их несколько - возвращает
+		//Выбирает из массива концов концы, достаточно близкие к заданной точке, если их несколько - возвращает ближайший
 		let g = endGroup.filter((e)=>(Math.abs(e.point[0]-point[0])<2 && Math.abs(e.point[1]-point[1])<2));
 		let res;
 		if(g.length){
@@ -577,5 +586,6 @@ function getLineEndsForPoints(points, lines){
 }
 
 module.exports = {
-	getIsolines
+	getIsolines,
+	sortLines
 }

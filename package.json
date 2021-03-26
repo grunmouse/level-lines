@@ -13,6 +13,9 @@
     "email": "grunmouse@mail.ru"
   },
   "license": "MIT",
-  "dependencies": {},
-  "dev": true
+  "dev": true,
+  "devDependencies": {
+    "@grunmouse/jsverify-env": "link:..\\jsverify-env",
+    "jsverify": "^0.8.4"
+  }
 }

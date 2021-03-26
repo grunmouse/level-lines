@@ -1,0 +1,41 @@
+devDependencies:
+  '@grunmouse/jsverify-env': link:../jsverify-env
+  jsverify: 0.8.4
+lockfileVersion: 5.2
+packages:
+  /jsverify/0.8.4:
+    dependencies:
+      lazy-seq: 1.0.0
+      rc4: 0.1.5
+      trampa: 1.0.1
+      typify-parser: 1.1.0
+    dev: true
+    engines:
+      node: '>= 0.8.0'
+    resolution:
+      integrity: sha512-nUG73Sfi8L4eOkc7pv9sflgAm43v+z6XMuePGVdRoBUxBLJiVcMcf3Xgc4h19eHHF3JwsaagOkUu825UnPBLJw==
+  /lazy-seq/1.0.0:
+    dev: true
+    engines:
+      node: '>= 0.10.0'
+    resolution:
+      integrity: sha1-iAy4qrJWAmOC4C9T7AiWgqdMW2o=
+  /rc4/0.1.5:
+    dev: true
+    engines:
+      node: '>=0.10.0'
+    resolution:
+      integrity: sha1-CMbgSgFo9utiHCKrbLEVG9n0pk0=
+  /trampa/1.0.1:
+    dev: true
+    resolution:
+      integrity: sha512-93WeyHNuRggPEsfCe+yHxCgM2s6H3Q8Wmlt6b6ObJL8qc7eZlRaFjQxwTrB+zbvGtlDRnAkMoYYo3+2uH/fEwA==
+  /typify-parser/1.1.0:
+    dev: true
+    engines:
+      node: '>= 0.10.0'
+    resolution:
+      integrity: sha1-rHO/pfJTQ0aOLQ8zRsYRe8A9PJk=
+specifiers:
+  '@grunmouse/jsverify-env': link:..\jsverify-env
+  jsverify: ^0.8.4
