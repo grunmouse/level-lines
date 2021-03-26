@@ -42,9 +42,9 @@ function sortLines(edges){
 	 * @param {integer} index - позиция второго конца line, где нужно проверить индекс узла на совпадение с node
 	 */
 	function renameLine(line, node, index){
-		if(line[index]===node){
+		if(line[0] === line[line.length-1]){
 			closeLines.push(line);
-			linesMap.delete(node);
+			linesMap.delete(line[0]);
 		}
 		else if(linesMap.has(node)){
 			concatLines(line, node);
@@ -73,7 +73,7 @@ function sortLines(edges){
 	 * @param {NodeID} node - общий узел
 	 * @param {NodePolyline} line2
 	 */
-	function concatTwoLines(line1, node, line2){
+	function concatTwoLines(line1, node, line2, noreg){
 		if(line1[0]===node){
 			if(line2[0]===node){
 				//Начало к началу
@@ -83,10 +83,10 @@ function sortLines(edges){
 				//Конец к началу
 				line1.unshift(...line2);
 				linesMap.delete(node);
-				linesMap.set(line1[0], line1);
+				!noreg && linesMap.set(line1[0], line1);
 			}
 		}
-		else{
+		else if(line1[line1.length-1]===node){
 			if(line2[line2.length-1]===node){
 				//Конец к концу
 				line2.reverse();
@@ -95,8 +95,11 @@ function sortLines(edges){
 				//Начало к концу
 				line1.push(...line2);
 				linesMap.delete(node);
-				linesMap.set(line1[line1.length-1], line1);
+				!noreg && linesMap.set(line1[line1.length-1], line1);
 			}
+		}
+		else{
+			throw new Error("Inconsistent line "+n1);
 		}
 	}
 	
@@ -107,17 +110,15 @@ function sortLines(edges){
 	 * @param {NodeID} n1
 	 * @param {NodeID} n2
 	 */
-	function handle(n1, n2){
+	function handle(n1, n2, line2){
 		let line = linesMap.get(n1);
 		if(line[0]===n1){
-			line.unshift(n2);
-			linesMap.delete(n1);
-			renameLine(line, n2, line.length-1);
+			concatTwoLines(line, n1, line2, true);
+			renameLine(line, n2);
 		}
 		else if(line[line.length-1]===n1){
-			line.push(n2);
-			linesMap.delete(n1);
-			renameLine(line, n2, 0);
+			concatTwoLines(line, n1, line2, true);
+			renameLine(line, n2);
 		}
 		else{
 			throw new Error("Inconsistent line "+n1);
@@ -138,8 +139,8 @@ function sortLines(edges){
 			handle(last, first, line, true);
 		}
 		else{
-			linesMap.set(e[0], line);
-			linesMap.set(e[1], line);
+			linesMap.set(first, line);
+			linesMap.set(last, line);
 		}
 	}
 	//После работы все замкнутые линии перенесены в closeLines, мапа содержит только разомкнутые, причем по две ссылки на каждую

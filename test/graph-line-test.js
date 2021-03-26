@@ -69,7 +69,11 @@ const arbParts = bless({
 describe('graph-line', ()=>{
 	const prop = jsc.forall(arbEdges, env, ({polyline, parts})=>{
 		
+		//parts.push([polyline[0], polyline[polyline.length-1]]);
+		
 		let result = sortLines(parts);
+		
+		//console.log(result);
 		
 		let opened = result.opened[0];
 		
@@ -83,7 +87,7 @@ describe('graph-line', ()=>{
 		
 		return a || b;
 	});
-	prop(0);
+	//console.log(prop(0).exc);
 	it('sortLines', ()=>{
 		jsc.assert(prop);
 	});
