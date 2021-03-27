@@ -380,6 +380,7 @@ function sortLines(edges){
 		if(line[index]===node){
 			closeLines.push(line);
 			linesMap.delete(node);
+			line.pop();
 		}
 		else if(linesMap.has(node)){
 			concatLines(line, node, index);

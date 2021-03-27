@@ -18,7 +18,7 @@
 
 /**
  * сортирует объединяет смежные рёбра в непрерывные цепочки узлов
- * @param {Array<Edge>} edges - массив рёбер
+ * @param {Array<NodePolyline>} edges - массив фрагментов линий
  * @returned LevelStructure<NodePolyline>
  */
 function sortLines(edges){
@@ -39,12 +39,12 @@ function sortLines(edges){
 	 * если нет - добавляет её в мапу под индексом node
 	 * @param {NodePolyline} line - ломаная, выраженная массивом индексов узлов
 	 * @param {NodeID} node - индекс нового концевого узла
-	 * @param {integer} index - позиция второго конца line, где нужно проверить индекс узла на совпадение с node
 	 */
-	function renameLine(line, node, index){
+	function renameLine(line, node){
 		if(line[0] === line[line.length-1]){
 			closeLines.push(line);
 			linesMap.delete(line[0]);
+			line.pop();
 		}
 		else if(linesMap.has(node)){
 			concatLines(line, node);
@@ -55,25 +55,13 @@ function sortLines(edges){
 	}
 	
 	/**
-	 * Дополняет линию line1, содержащую узел node 
-	 * узлами из линии line2, находящейся в мапе по ключу node
-	 * удаляет из мапы линию по ключу node - это line2,
-	 * заменяет линию, по ключу с другого конца line2 (это line2) на результат объединения
-	 * @param {NodePolyline} line1
-	 * @param {NodeID} node
-	 */
-	function concatLines(line1, node){
-		let line2 = linesMap.get(node);
-		concatTwoLines(line1, node, line2);
-	}
-	
-	/**
 	 * Соединяет две линии, удаляет из мапы общий узел, если он там был, добавляет полученную линию по ключам её концов
 	 * @param {NodePolyline} line1
 	 * @param {NodeID} node - общий узел
 	 * @param {NodePolyline} line2
+	 * @return {NodeID} - второй узел line2
 	 */
-	function concatTwoLines(line1, node, line2, noreg){
+	function concatTwoLines(line1, node, line2){
 		if(line1[0]===node){
 			if(line2[0]===node){
 				//Начало к началу
@@ -83,7 +71,10 @@ function sortLines(edges){
 				//Конец к началу
 				line1.unshift(...line2);
 				linesMap.delete(node);
-				!noreg && linesMap.set(line1[0], line1);
+				
+				let n2 = line1[0];
+
+				return n2;
 			}
 		}
 		else if(line1[line1.length-1]===node){
@@ -95,34 +86,41 @@ function sortLines(edges){
 				//Начало к концу
 				line1.push(...line2);
 				linesMap.delete(node);
-				!noreg && linesMap.set(line1[line1.length-1], line1);
+				
+				let n2 = line1[line1.length-1];
+				
+				return n2;
 			}
 		}
 		else{
-			throw new Error("Inconsistent line "+n1);
+			throw new Error("Inconsistent line "+node);
 		}
+	}
+
+	/**
+	 * Дополняет линию line1, содержащую узел node 
+	 * узлами из линии line2, находящейся в мапе по ключу node
+	 * удаляет из мапы линию по ключу node - это line2,
+	 * заменяет линию, по ключу с другого конца line2 (это line2) на результат объединения
+	 * @param {NodePolyline} line1
+	 * @param {NodeID} node
+	 */
+	function concatLines(line1, node){
+		let line2 = linesMap.get(node);
+		let n2 = concatTwoLines(line1, node, line2);
+		linesMap.set(n2, line1);
 	}
 	
 	/**
 	 * Находит в карте линию, один из концов которой равен n1
-	 *	добавляет с соответствующего конца массива узел n2
-	 *	удаляет элемент мапы номер n1, добавляет извлечённую линию под номером n2
-	 * @param {NodeID} n1
-	 * @param {NodeID} n2
+	 *	добавляет с соответствующего конца новый фрагмент line2
+	 * @param {NodeID} node
+	 * @param {NodePolyline} line2
 	 */
-	function handle(n1, n2, line2){
-		let line = linesMap.get(n1);
-		if(line[0]===n1){
-			concatTwoLines(line, n1, line2, true);
-			renameLine(line, n2);
-		}
-		else if(line[line.length-1]===n1){
-			concatTwoLines(line, n1, line2, true);
-			renameLine(line, n2);
-		}
-		else{
-			throw new Error("Inconsistent line "+n1);
-		}
+	function handle(node, line2){
+		let line1 = linesMap.get(node);
+		let n2 = concatTwoLines(line1, node, line2);
+		renameLine(line1, n2);
 	}
 	
 	//Обходит все рёбра, проверяет есть ли в мапе линии начинающиеся с одного из узлов очередного ребра,
@@ -133,10 +131,10 @@ function sortLines(edges){
 		let last = e[e.length-1];
 		let line = [...e];
 		if(linesMap.has(first)){
-			handle(first, last, line);
+			handle(first, line);
 		}
 		else if(linesMap.has(last)){
-			handle(last, first, line, true);
+			handle(last, line);
 		}
 		else{
 			linesMap.set(first, line);

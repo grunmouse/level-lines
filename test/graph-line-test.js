@@ -7,13 +7,14 @@ const {
 	random
 } = require('@grunmouse/jsverify-env');
 
+//const {sortLines} = require('../index.js');
 const {sortLines} = require('../graph-line.js');
 
 
 const arbEdges = bless({
 	generator(size){
 		const n = env.integer(20,40).generator(size);
-		const nodes = env.uarray(n, env.integer).generator();
+		const nodes = env.uarray(n, env.integer(50)).generator();
 		const rev = env.array(n-1, env.bool).generator();
 		let edges = [];
 		for(let i=n-1; i--;){
@@ -36,9 +37,9 @@ const arbEdges = bless({
 const arbParts = bless({
 	generator(size){
 		const n = env.integer(20,40).generator(size);
-		const nodes = env.uarray(n, env.integer).generator();
+		const nodes = env.uarray(n, env.integer(50)).generator();
 		const limits = env.decarray(env.integer(2,30).generator(), env.integer(1, n-2)).generator();
-		
+		limits.push(0);
 		let parts = [], i=0, end = nodes.length;
 		for(let pos of limits){
 			let part = nodes.slice(pos, end);
@@ -66,29 +67,88 @@ const arbParts = bless({
 	}
 });
 
+function moveToStart(array, n) {
+	return [...array.slice(-n),...array.slice(0, array.length - n)]
+}
+
+function isCycleEqual(value, req){
+	value = value.slice(0);
+	let end = value.indexOf(req[0]);
+	
+	
+	value = moveToStart(value, value.length - end);
+	
+	let a = jsc.utils.isEqual(req, value);
+	if(a){
+		return true;
+	}
+	
+	value.reverse();
+	value = moveToStart(value, 1);
+	let b = jsc.utils.isEqual(req, value);
+	
+	return b;
+}
+
+function isRevEqual(value, req){
+	value = value.slice(0);
+	let a = jsc.utils.isEqual(req, value);
+	if(a){
+		return true;
+	}
+	value.reverse();
+	let b = jsc.utils.isEqual(req, value);
+	return b;
+}
+
+const prop = arb => jsc.forall(arb, env, ({polyline, parts})=>{
+	
+	//console.log(polyline);
+	//console.log(parts);
+	let result = sortLines(parts);
+	
+	//console.log(result);
+	
+	let opened = result.opened[0];
+	
+	//console.log(polyline);
+	//console.log(opened);
+	
+	
+	return isRevEqual(polyline, opened);
+});	
+
+const cycle = arb => jsc.forall(arb, env, ({polyline, parts})=>{
+	
+	parts.push([polyline[0], polyline[polyline.length-1]]);
+	
+	let result = sortLines(parts);
+	
+	//console.log(result);
+	
+	let opened = result.closed[0];
+	
+	return isCycleEqual(polyline, opened);;
+});
+
 describe('graph-line', ()=>{
-	const prop = jsc.forall(arbEdges, env, ({polyline, parts})=>{
-		
-		//parts.push([polyline[0], polyline[polyline.length-1]]);
-		
-		let result = sortLines(parts);
-		
-		//console.log(result);
-		
-		let opened = result.opened[0];
-		
-		//console.log(polyline);
-		//console.log(opened);
-		
-		let a = jsc.utils.isEqual(polyline, opened);
-		opened.reverse();
-		let b = jsc.utils.isEqual(polyline, opened);
-		
-		
-		return a || b;
+
+	
+	it('sortLines edge', ()=>{
+		jsc.assert(prop(arbEdges));
+	});	
+	
+	it('sortLines edge closed', ()=>{
+		jsc.assert(cycle(arbEdges));
 	});
-	//console.log(prop(0).exc);
+	
+	//console.log(prop(arbParts)(0).exc);
+	
 	it('sortLines', ()=>{
-		jsc.assert(prop);
+		jsc.assert(prop(arbEdges));
+	});	
+	
+	it('sortLines closed', ()=>{
+		jsc.assert(cycle(arbEdges));
 	});
 });
