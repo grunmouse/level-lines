@@ -1,3 +1,5 @@
+const {sortLines} = require('./graph-line.js');
+
 	/**
 	 * @typedef {integer} NodeID - псевдоним типа, который служит ключём для идентификации узла сетки
 	 */
@@ -113,74 +115,11 @@
 	}
 	
 	/**
-	 * Числовой поиск, до тех пор, пока шаг аргумента не станет меньше допуска
-	 */
-	function nummericFindToStep(eps){
-		return (fun, value)=>{
-			let n=0, p=1;
-			while(p-n<eps){
-				m=(p+n)/2;
-				let mval = fun(m);
-				if(mval>value){
-					p = m;
-				}
-				else if(mval < value){
-					n = m;
-				}
-				else if(mval === value){
-					return m;
-				}
-				else{
-					throw new Error("Function returned NaN: " + mval);
-				}
-			}
-			return p;
-		}
-	}
-
-	/**
-	 * Числовой поиск, до тех пор, пока шаг приращение функции не станет меньше допуска
-	 */
-	function nummericFindToValue(eps){
-		return (fun, value)=>{
-			let n=0, p=1;
-			while(p-n<0){
-				m=(p+n)/2;
-				let mval = fun(m);
-				if(mval>value){
-					p = m;
-				}
-				else if(mval < value){
-					n = m;
-				}
-				else if(Math.abs(mval - value)<eps){
-					return m;
-				}
-				else{
-					throw new Error("Function returned NaN: " + mval);
-				}
-			}
-			return p;
-		}
-	}
-	
-	/**
-	 * Линейная интерполяция функции от аргумента [0;1]
-	 */
-	function linearInterpol(fun, value){
-		let f0 = fun(0);
-		let k = fun(1) - f0;
-		let t = (value-f0)/k;
-		
-		return t;
-	}
-	
-	/**
 	 * Уточняет координаты точки на вертикальном или горизонтальном отрезке
 	 * @param {TargetFunction} f - функция рельефа
 	 * @param {number} value - значение функции в искомой точке
 	 * @param {Point} middle - предварительные координаты точки (координаты узла, находящегося на проверяемом отрезке)
-	 * @method {Function<({SubtargetFunction}, {number}), (number[0, 1])}
+	 * @param {Function<({SubtargetFunction}, {number}), (number[0, 1])} method
 	 * @returned {Point} - уточнённые координаты точки
 	 */
 	function precissionPoint(f, value, middle, method){
@@ -190,21 +129,6 @@
 		return par(t);
 	}
 	
-	/** 
-	 * Приближает координаты точки с помощью линейной интерполяции
-	 * @param {TargetFunction} f - функция рельефа
-	 * @param {number} value - значение функции в искомой точке
-	 * @param {Point} middle - предварительные координаты точки (координаты узла, находящегося на проверяемом отрезке)
-	 * @returned {Point} - приближенные координаты точки
-	 */
-	function linearPoint(f, value, middle){
-		let par = parameterSection(middle);
-		let f0 = f(...par(0));
-		let k = f(...par(1)) - f0;
-		let t = (value-f0)/k;
-		
-		return par(t);
-	}
 	
 /**
  * @param {Array<number>} levels - значения уровней, для которых ищутся изолинии, индекс в массиве - считается номером уровня.
@@ -351,122 +275,6 @@ function findLevelCruxCurve(f, levels, curve, tmax){
  * @param {Array<P>} closed - замкнутые ломаные
  */
 
-/**
- * сортирует объединяет смежные рёбра в непрерывные цепочки узлов
- * @param {Array<Edge>} edges - массив рёбер
- * @returned LevelStructure<NodePolyline>
- */
-function sortLines(edges){
-	/**
-	 * @var {Map<NodeID, NodePolyline>} linesMap
-	 * для каждого узла, являющегося концом ломаной, содержит соответствующую ломаную
-	 */
-	let linesMap = new Map();
-	/**
-	 * @var {Array<NodePolyline>} closeLines
-	 * Массив замкнутых линий
-	 */
-	let closeLines = [];
-
-	/**
-	 * Проверяет, не замкнута ли ломаная после добавления узла node
-	 * если замкнута - добавляет её в массив closeLines и удаляет из мапы вторую ссылку на неё,
-	 * если нет - добавляет её в мапу под индексом node
-	 * @param {NodePolyline} line - ломаная, выраженная массивом индексов узлов
-	 * @param {NodeID} node - индекс нового концевого узла
-	 * @param {integer} index - позиция второго конца line, где нужно проверить индекс узла на совпадение с node
-	 */
-	function renameLine(line, node, index){
-		if(line[index]===node){
-			closeLines.push(line);
-			linesMap.delete(node);
-			line.pop();
-		}
-		else if(linesMap.has(node)){
-			concatLines(line, node, index);
-		}
-		else{
-			linesMap.set(node, line);
-		}
-	}
-	
-	/**
-	 * Дополняет линию line1, содержащую узел node 
-	 * узлами из линии line2, находящейся в мапе по ключу node
-	 * удаляет из мапы линию по ключу node - это line2,
-	 * заменяет линию, по ключу с другого конца line2 (это line2) на результат объединения
-	 * @param {NodePolyline} line1
-	 * @param {NodeID} node
-	 */
-	function concatLines(line1, node){
-		let line2 = linesMap.get(node);
-		if(line1[0]===node){
-			if(line2[0]===node){
-				line2.reverse();
-			}
-			if(line2.pop()===node){
-				line1.unshift(...line2);
-				linesMap.delete(node);
-				linesMap.set(line1[0], line1);
-			}
-		}
-		else{
-			if(line2[line2.length-1]===node){
-				line2.reverse();
-			}
-			if(line2.shift()===node){
-				line1.push(...line2);
-				linesMap.delete(node);
-				linesMap.set(line1[line1.length-1], line1);
-			}
-		}
-	}
-	/**
-	 * Находит в карте линию, один из концов которой равен n1
-	 *	добавляет с соответствующего конца массива узел n2
-	 *	удаляет элемент мапы номер n1, добавляет извлечённую линию под номером n2
-	 * @param {NodeID} n1
-	 * @param {NodeID} n2
-	 */
-	function handle(n1, n2){
-		let line = linesMap.get(n1);
-		if(line[0]===n1){
-			line.unshift(n2);
-			linesMap.delete(n1);
-			renameLine(line, n2, line.length-1);
-		}
-		else if(line[line.length-1]===n1){
-			line.push(n2);
-			linesMap.delete(n1);
-			renameLine(line, n2, 0);
-		}
-		else{
-			throw new Error("Inconsistent line "+n1);
-		}
-	}
-	//Обходит все рёбра, проверяет есть ли в мапе линии начинающиеся с одного из узлов очередного ребра,
-	//	если да - то дополняет и переименовывает эту линию этим узлом
-	//	если нет, то добавляет ребро в мапу как новую линию, доступную по двум индексам - номерам её узлов
-	for(let e of edges){
-		if(linesMap.has(e[0])){
-			handle(e[0], e[1]);
-		}
-		else if(linesMap.has(e[1])){
-			handle(e[1], e[0]);
-		}
-		else{
-			let line = [...e];
-			linesMap.set(e[0], line);
-			linesMap.set(e[1], line);
-		}
-	}
-	//После работы все замкнутые линии перенесены в closeLines, мапа содержит только разомкнутые, причем по две ссылки на каждую
-	let uncloseLines = Array.from(new Set(linesMap.values()));
-	return {
-		closed:closeLines,
-		opened:uncloseLines
-	};
-}
 
 /**
  * @typedef {Array<Point>} Polyline - ломаная, выраженная массивом координат точек
@@ -488,10 +296,15 @@ const convertXY = (line)=>(line.map((node)=>(nodeXY(node))));
 function convertMiddlePoints(line){
 	let result = [];
 	let prev = line[0];
+	let last = line[line.length-1];
+	const close = (prev[0] === last[0] && prev[1] === last[1]);
 	for(let i=1, len = line.length; i<len; ++i){
 		let cur = line[i];
 		result.push([(cur[0]+prev[0])/2, (cur[1]+prev[1])/2]);
 		prev = cur;
+	}
+	if(close){
+		result.push(result[0]); //сохраняем признак замкнутости линии
 	}
 	return result;
 }
@@ -523,9 +336,13 @@ function mapLevelStructure(struct, callback){
 function getIsolines(f, levels, Xmax, Ymax){
 	return findLevelEdges(f, levels, Xmax, Ymax).map((edges, i)=>{
 		let struct = sortLines(edges);
+		//Получены цепочки нодов
 		const convert = (a)=>{
+			//На входе цепочка NodeID
 			let b = convertXY(a);
+			//Получена ломаная, проходящая через середины квадратов, между рассчитанными точками
 			let c = convertMiddlePoints(b);
+			//Получена ломаная, проходящая через середины отрезков, между рассчитанными точками
 			return c;
 		};
 		let result = mapLevelStructure(struct, convert);
@@ -540,6 +357,24 @@ function getIsolines(f, levels, Xmax, Ymax){
  * @property {integer} index - позиция конца ломаной в массиве её точек
  * @property {Point} point - ссылка на конец ломаной
  */
+ 
+/**
+ * @param {EndOfPolyline} - конец ломаной, к которому нужно добавить точку
+ * @param {Point} - добавляемая точка
+ */
+function appendPoint(lineend, newpoint){
+	const {line, index} = lineend;
+	if(index === 0){
+		line.unshift(newpoint);
+	}
+	else if(index === line.length-1){
+		line.push(newpoint);
+	}
+	else{
+		throw new Error('Incorrect EndOfLine #' + lineend.i);
+	}
+}
+
 /**
  * Находит для каждой точки ближайший к ней конец линии.
  * @param {Array<Point>} points
@@ -573,6 +408,7 @@ function getLineEndsForPoints(points, lines){
 		if(g.length){
 			if(g.length>1){
 				g.sort((a, b)=>{
+					//Квадраты расстояний a и b до point
 					let da = (a.point[0]-point[0])**2 + (a.point[1]-point[1])**2;
 					let db = (b.point[0]-point[0])**2 + (b.point[1]-point[1])**2;
 					return da-db;
@@ -586,7 +422,9 @@ function getLineEndsForPoints(points, lines){
 	return points.map(getEnd);
 }
 
+
 module.exports = {
 	getIsolines,
-	sortLines
+	sortLines,
+	findLevelCruxCurve
 }
