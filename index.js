@@ -39,8 +39,15 @@ const {sortLines} = require('./graph-line.js');
 	 * Возвращает идентификатор узла линий рядом с точкой
 	 * x, y - координаты точки
 	 * n - относительное положение узла 
-	 *	01
-	 *	23
+	 * Легенда n:
+	   | | 
+	  -0-1-
+	   |P| 
+	  -2-3-
+	   | | 
+	  P - точка (x;y)
+	  0,1,2,3 - позиции узлов сетки, соответствующие значениям n
+	  
 	 * @param {integer} x
 	 * @param {integer} y
 	 * @param {ingeger[0, 3]} n
@@ -124,6 +131,9 @@ const {sortLines} = require('./graph-line.js');
 	 */
 	function precissionPoint(f, value, middle, method){
 		let par = parameterSection(middle);
+		if(!par){
+			return middle; //Невозможно уточнить точку
+		}
 		let fun = (t)=>(f(...par(t)));
 		let t = method(fun, value);
 		return par(t);
@@ -133,7 +143,7 @@ const {sortLines} = require('./graph-line.js');
 /**
  * @param {Array<number>} levels - значения уровней, для которых ищутся изолинии, индекс в массиве - считается номером уровня.
  * Массив должен быть отсторирован по возрастанию
- *
+ * @return {Function<(Number,Number)=>Array[2]<Integer>>} - функция поиска номеров уровней, между значениями аргументов
  */
 function levelsGetter(levels){
 	/**
@@ -242,7 +252,7 @@ function findLevelEdges(f, levels, xmax, ymax){
  *		- массив, каждый элемент которого соответствует уровню, индексы элементов соответствуют индексам уровней в массиве level
  *			- уровень представляет собой массив значений параметра t, в которых ожидается пересечение изолинии с кривой
  */
-function findLevelCruxCurve(f, levels, curve, tmax){
+function findLevelCrossCurve(f, levels, curve, tmax){
 	let levelPoints = levels.map(()=>([]));
 	function addPoints(levels, t){
 		for(let i=levels[0]; i<levels[1]; ++i){
@@ -390,7 +400,7 @@ function getLineEndsForPoints(points, lines){
 			(line, i)=>(
 				[
 					{i, line, index:0, point:line[0]}, 
-					{i, line, index:line.lenght-1, point:line[line.lenght-1]}
+					{i, line, index:line.length-1, point:line[line.lenght-1]}
 				]
 			)
 		)
@@ -422,9 +432,19 @@ function getLineEndsForPoints(points, lines){
 	return points.map(getEnd);
 }
 
+function precissionMaper(f, value, method){
+	return (line)=>(line.map((point)=>{
+		return precissionPoint(f, value, middle, method);
+	});
+}
 
 module.exports = {
 	getIsolines,
 	sortLines,
-	findLevelCruxCurve
+	findLevelCrossCurve,
+	getLineEndsForPoints,
+	appendPoint,
+	precissionMaper,
+	precission: require('./precission-methods.js'),
+	mapLevelStructure
 }
